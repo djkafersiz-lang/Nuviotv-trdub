@@ -36,22 +36,23 @@ import com.nuvio.tv.core.audio.ShareSesAudioSearch
 internal fun ShareSesAudioSearchDialog(
     visible: Boolean,
     mediaTitle: String,
+    imdbId: String?,
     onDismiss: () -> Unit
 ) {
     if (!visible) return
 
     val context = LocalContext.current
-    var matches by remember(mediaTitle) { mutableStateOf<List<ShareSesAudioMatch>>(emptyList()) }
+    var matches by remember(mediaTitle, imdbId) { mutableStateOf<List<ShareSesAudioMatch>>(emptyList()) }
     var loading by remember(mediaTitle) { mutableStateOf(true) }
     var error by remember(mediaTitle) { mutableStateOf<String?>(null) }
     val firstResultFocus = remember { FocusRequester() }
 
-    LaunchedEffect(mediaTitle) {
+    LaunchedEffect(mediaTitle, imdbId) {
         loading = true
         error = null
         matches = emptyList()
         try {
-            matches = ShareSesAudioSearch.search(mediaTitle)
+            matches = ShareSesAudioSearch.search(mediaTitle, imdbId)
             if (matches.isEmpty()) error = "Eşleşen herkese açık konu bulunamadı."
         } catch (exception: Exception) {
             error = exception.message ?: "ShareSes araması yapılamadı."
@@ -75,6 +76,7 @@ internal fun ShareSesAudioSearchDialog(
             )
             Text(
                 text = mediaTitle,
+                
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFFB8C4D8)
             )
