@@ -84,7 +84,7 @@ object ShareSesAudioSearch {
             successful.flatMap { it.getOrDefault(emptyList()) }
                 .distinctBy { it.threadUrl }
                 .sortedWith(
-                    compareByDescending<ShareSesAudioMatch> { titleMatchScore(query, it.title) }
+                    compareByDescending<ShareSesAudioMatch> { match -> queries.maxOfOrNull { titleMatchScore(it, match.title) } ?: 0 }
                         .thenBy { it.sourceName }
                 )
                 .take(MAX_RESULTS)
