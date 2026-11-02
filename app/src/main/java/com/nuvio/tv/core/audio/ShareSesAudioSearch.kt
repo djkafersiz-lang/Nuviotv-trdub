@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit
  * Search results are forum topics only. The app does not bypass account, membership,
  * download, or copyright restrictions imposed by either community.
  */
+data class ShareSesAudioFile(val title: String, val url: String, val sourceName: String)
+
 data class ShareSesAudioMatch(
     val title: String,
     val threadUrl: String,
