@@ -63,7 +63,7 @@ object ShareSesAudioSearch {
                 ".contentRow-title a[href], .structItem-title a[href], .block-body a[href]"
             )
             val seen = HashSet<String>()
-            candidates.mapNotNull { anchor ->
+            val parsedMatches = candidates.mapNotNull { anchor ->
                 val href = anchor.absUrl("href")
                 val uri = runCatching { href.toHttpUrl() }.getOrNull() ?: return@mapNotNull null
                 if (uri.host != "shareses.com" && !uri.host.endsWith(".shareses.com")) return@mapNotNull null
@@ -85,6 +85,46 @@ object ShareSesAudioSearch {
                 )
             }
                 .sortedByDescending { match -> titleMatchScore(query, match.title) }
+                .take(MAX_RESULTS)
+
+            if (parsedMatches.isNotEmpty()) parsedMatches else searchPublicFilmForum(query)
+        }
+    }
+
+    /**
+     * XenForo may show a login/search interstitial instead of anonymous search results.
+     * As a non-invasive fallback, inspect only the public film-audio forum's visible
+     * thread titles; do not fetch attachments or attempt to enter member-only areas.
+     */
+    private fun searchPublicFilmForum(query: String): List<ShareSesAudioMatch> {
+        val request = Request.Builder()
+            .url("$BASE_URL/forums/film-ses-dosyalari.4/")
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 Chrome/120 Safari/537.36")
+            .header("Accept", "text/html,application/xhtml+xml")
+            .build()
+        val response = client.newCall(request).execute()
+        response.use { result ->
+            if (!result.isSuccessful) return emptyList()
+            val html = result.body?.string().orEmpty()
+            if (html.isBlank()) return emptyList()
+            val document = Jsoup.parse(html, BASE_URL)
+            val seen = HashSet<String>()
+            return document.select(".structItem-title a[href], .contentRow-title a[href]")
+                .mapNotNull { anchor ->
+                    val href = anchor.absUrl("href")
+                    val uri = runCatching { href.toHttpUrl() }.getOrNull() ?: return@mapNotNull null
+                    if (uri.host != "shareses.com" && !uri.host.endsWith(".shareses.com")) return@mapNotNull null
+                    if (!uri.encodedPath.contains("/threads/")) return@mapNotNull null
+                    val canonical = uri.newBuilder().query(null).fragment(null).build().toString()
+                    if (!seen.add(canonical)) return@mapNotNull null
+                    val titleText = anchor.text().replace(Regex("\\s+"), " ").trim()
+                    if (titleText.isBlank() || titleMatchScore(query, titleText) == 0) return@mapNotNull null
+                    val excerpt = anchor.closest(".structItem, .contentRow")
+                        ?.selectFirst(".structItem-snippet, .contentRow-snippet, .structItem-minor")
+                        ?.text()?.replace(Regex("\\s+"), " ")?.trim()?.take(280)
+                    ShareSesAudioMatch(titleText, canonical, excerpt)
+                }
+                .sortedByDescending { titleMatchScore(query, it.title) }
                 .take(MAX_RESULTS)
         }
     }
