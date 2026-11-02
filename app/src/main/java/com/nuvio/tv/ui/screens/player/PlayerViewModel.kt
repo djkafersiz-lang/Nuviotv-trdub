@@ -220,6 +220,7 @@ class PlayerViewModel @Inject constructor(
         get() = controller.exoPlayer
 
     fun getCurrentStreamUrl(): String = controller.getCurrentStreamUrl()
+    fun getCurrentImdbId(): String? = controller.getCurrentImdbId()
 
     fun getCurrentHeaders(): Map<String, String> = controller.getCurrentHeaders()
 
