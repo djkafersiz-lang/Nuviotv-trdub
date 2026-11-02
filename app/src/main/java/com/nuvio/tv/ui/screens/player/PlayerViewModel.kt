@@ -221,6 +221,7 @@ class PlayerViewModel @Inject constructor(
 
     fun getCurrentStreamUrl(): String = controller.getCurrentStreamUrl()
     fun getCurrentImdbId(): String? = controller.getCurrentImdbId()
+    fun attachExternalTurkishAudio(url: String, label: String) = controller.attachExternalTurkishAudio(url, label)
 
     fun getCurrentHeaders(): Map<String, String> = controller.getCurrentHeaders()
 
