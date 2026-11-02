@@ -64,13 +64,16 @@ object ShareSesAudioSearch {
      * Searches public XenForo search results first, then the visible public forum indexes.
      * Each source is isolated so an unavailable site does not hide results from the other.
      */
-    suspend fun search(title: String): List<ShareSesAudioMatch> = withContext(Dispatchers.IO) {
-        val query = title.trim().replace(Regex("\\s+"), " ").take(160)
-        if (query.length < 2) return@withContext emptyList()
+    suspend fun search(title: String, imdbId: String? = null): List<ShareSesAudioMatch> = withContext(Dispatchers.IO) {
+        val titleQuery = title.trim().replace(Regex("\\s+"), " ").take(160)
+        val validImdbId = imdbId?.trim()?.substringBefore(':')
+            ?.takeIf { it.matches(Regex("^tt\\d{7,}$")) }
+        val queries = listOfNotNull(validImdbId, titleQuery.takeIf { it.length >= 2 }).distinct()
+        if (queries.isEmpty()) return@withContext emptyList()
 
         coroutineScope {
             val results = sources.map { source ->
-                async { runCatching { searchSource(source, query) } }
+                async { runCatching { searchSource(source, queries) } }
             }.awaitAll()
 
             val successful = results.filter { it.isSuccess }
@@ -88,29 +91,36 @@ object ShareSesAudioSearch {
         }
     }
 
-    private fun searchSource(source: ForumSource, query: String): List<ShareSesAudioMatch> {
+    private fun searchSource(source: ForumSource, queries: List<String>): List<ShareSesAudioMatch> {
         val collected = LinkedHashMap<String, ShareSesAudioMatch>()
 
-        // XenForo search may require a session on some communities. If it does,
-        // the public forum index below remains a safe, read-only fallback.
-        runCatching {
-            val searchUrl = (source.baseUrl + "/search/").toHttpUrl().newBuilder()
-                .addQueryParameter("q", query)
-                .build()
-            val html = fetchHtml(searchUrl.toString())
-            parseThreads(html, source, query).forEach { collected[it.threadUrl] = it }
+        // Search the exact IMDb identifier first, then the canonical display title.
+        // Some forum engines do not index IDs, so title/year matching remains the fallback.
+        queries.forEach { query ->
+            runCatching {
+                val searchUrl = (source.baseUrl + "/search/").toHttpUrl().newBuilder()
+                    .addQueryParameter("q", query)
+                    .build()
+                val html = fetchHtml(searchUrl.toString())
+                parseThreads(html, source, query).forEach { collected[it.threadUrl] = it }
+            }
         }
 
+        // XenForo may require a session for search. Inspect only visible public forum indexes.
         source.forumPaths.forEach { path ->
             if (collected.size >= MAX_RESULTS_PER_SOURCE) return@forEach
             runCatching {
                 val html = fetchHtml(source.baseUrl + path)
-                parseThreads(html, source, query).forEach { collected.putIfAbsent(it.threadUrl, it) }
+                queries.forEach { query ->
+                    parseThreads(html, source, query).forEach { collected.putIfAbsent(it.threadUrl, it) }
+                }
             }
         }
 
         return collected.values
-            .sortedByDescending { titleMatchScore(query, it.title) }
+            .sortedByDescending { match ->
+                queries.maxOfOrNull { titleMatchScore(it, match.title) } ?: 0
+            }
             .take(MAX_RESULTS_PER_SOURCE)
     }
 
