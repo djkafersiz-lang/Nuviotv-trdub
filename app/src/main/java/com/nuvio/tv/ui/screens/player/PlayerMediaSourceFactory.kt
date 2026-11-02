@@ -347,7 +347,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         videoUrl: String,
         videoHeaders: Map<String, String>,
         audioUrl: String,
-        audioHeaders: Map<String, String> = videoHeaders,
+        audioHeaders: Map<String, String> = emptyMap(),
         subtitleConfigurations: List<MediaItem.SubtitleConfiguration> = emptyList(),
         subtitleRoutes: Map<String, SubtitleRoute> = emptyMap(),
         videoFilename: String? = null,
