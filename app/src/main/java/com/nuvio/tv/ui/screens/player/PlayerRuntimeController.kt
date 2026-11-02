@@ -254,6 +254,19 @@ class PlayerRuntimeController(
             .ifEmpty { StreamSidecarSubtitles.forUrl(currentStreamUrl) }
     }
 
+    fun getCurrentImdbId(): String? {
+        val candidateIds = listOfNotNull(contentId, videoId)
+        candidateIds.firstOrNull { it.substringBefore(':').matches(Regex("^tt\\d{7,}$")) }
+            ?.let { return it.substringBefore(':') }
+
+        return candidateIds.firstNotNullOfOrNull { id ->
+            contentType?.let { type ->
+                metaRepository.getCachedMeta(type, id)?.imdbId
+                    ?.takeIf { it.matches(Regex("^tt\\d{7,}$")) }
+            }
+        }
+    }
+
     fun getCurrentStreamUrl(): String = currentStreamUrl
     fun getCurrentHeaders(): Map<String, String> = currentHeaders
 
