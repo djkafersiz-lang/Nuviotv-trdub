@@ -2083,6 +2083,7 @@ fun PlayerScreen(
         ShareSesAudioSearchDialog(
             visible = showShareSesAudioSearch,
             mediaTitle = uiState.title.ifBlank { uiState.contentName.orEmpty() },
+            imdbId = viewModel.getCurrentImdbId(),
             onDismiss = { showShareSesAudioSearch = false }
         )
 
