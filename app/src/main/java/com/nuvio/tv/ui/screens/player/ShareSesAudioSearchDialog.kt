@@ -103,6 +103,7 @@ internal fun ShareSesAudioSearchDialog(
                                     .padding(14.dp)
                                     .then(if (match == matches.firstOrNull()) Modifier.focusRequester(firstResultFocus) else Modifier)
                             ) {
+                                Text(match.sourceName, color = Color(0xFF79B8FF), style = MaterialTheme.typography.labelSmall)
                                 Text(match.title, color = Color.White, style = MaterialTheme.typography.titleSmall)
                                 match.excerpt?.takeIf { it.isNotBlank() }?.let {
                                     Text(it, color = Color(0xFFB8C4D8), style = MaterialTheme.typography.bodySmall)
