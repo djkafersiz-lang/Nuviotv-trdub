@@ -43,8 +43,8 @@ internal fun ShareSesAudioSearchDialog(
 
     val context = LocalContext.current
     var matches by remember(mediaTitle, imdbId) { mutableStateOf<List<ShareSesAudioMatch>>(emptyList()) }
-    var loading by remember(mediaTitle) { mutableStateOf(true) }
-    var error by remember(mediaTitle) { mutableStateOf<String?>(null) }
+    var loading by remember(mediaTitle, imdbId) { mutableStateOf(true) }
+    var error by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
     val firstResultFocus = remember { FocusRequester() }
 
     LaunchedEffect(mediaTitle, imdbId) {
@@ -76,13 +76,15 @@ internal fun ShareSesAudioSearchDialog(
             )
             Text(
                 text = mediaTitle,
-                
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFFB8C4D8)
             )
+            imdbId?.let {
+                Text("IMDb: $it", color = Color(0xFF79B8FF), style = MaterialTheme.typography.labelMedium)
+            }
 
             when {
-                loading -> Text("ShareSes'te aranıyor…", color = Color.White)
+                loading -> Text("IMDb ID ve film adıyla ses kaynaklarında aranıyor…", color = Color.White)
                 matches.isEmpty() -> Text(error ?: "Sonuç bulunamadı.", color = Color(0xFFFFCC80))
                 else -> {
                     Text("${matches.size} konu bulundu", color = Color(0xFF9ED0FF))
