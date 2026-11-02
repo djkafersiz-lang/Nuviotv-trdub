@@ -23,6 +23,7 @@ import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -330,6 +331,77 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             else -> defaultFactory.createMediaSource(mediaItem)
         }
         return wrapAudioDelay(mediaSource = mediaSource, audioDelayUsProvider = audioDelayUsProvider)
+    }
+
+
+    /**
+     * Creates a single ExoPlayer source containing the original video and an external
+     * audio-only URL (for example MP3 or M4A). The original video URL is not transcoded.
+     *
+     * Audio and video are built with the same networking/header handling as normal playback.
+     * The existing audio-delay wrapper is applied once around the merged source so its
+     * timestamp adjustment remains active for the combined playback timeline.
+     */
+    fun createMediaSourceWithExternalAudio(
+        context: Context,
+        videoUrl: String,
+        videoHeaders: Map<String, String>,
+        audioUrl: String,
+        audioHeaders: Map<String, String> = videoHeaders,
+        subtitleConfigurations: List<MediaItem.SubtitleConfiguration> = emptyList(),
+        subtitleRoutes: Map<String, SubtitleRoute> = emptyMap(),
+        videoFilename: String? = null,
+        audioFilename: String? = Uri.parse(audioUrl).lastPathSegment,
+        videoResponseHeaders: Map<String, String> = emptyMap(),
+        videoMimeTypeOverride: String? = null,
+        audioDelayUsProvider: (() -> Long)? = null,
+        mediaMetadata: androidx.media3.common.MediaMetadata? = null,
+        cacheKey: String? = null
+    ): MediaSource {
+        require(videoUrl.isNotBlank()) { "Video URL must not be blank" }
+        require(audioUrl.startsWith("http://", ignoreCase = true) ||
+            audioUrl.startsWith("https://", ignoreCase = true) ||
+            audioUrl.startsWith("file://", ignoreCase = true) ||
+            audioUrl.startsWith("content://", ignoreCase = true)
+        ) { "External audio URL must use http, https, file, or content scheme" }
+
+        // Build both children without a delay wrapper. Applying the wrapper to the merged
+        // source exactly once avoids shifting the video timestamps twice.
+        val videoSource = createMediaSource(
+            context = context,
+            url = videoUrl,
+            headers = videoHeaders,
+            subtitleConfigurations = subtitleConfigurations,
+            subtitleRoutes = subtitleRoutes,
+            filename = videoFilename,
+            responseHeaders = videoResponseHeaders,
+            mimeTypeOverride = videoMimeTypeOverride,
+            audioDelayUsProvider = null,
+            mediaMetadata = mediaMetadata,
+            cacheKey = cacheKey
+        )
+
+        val externalAudioMetadata = androidx.media3.common.MediaMetadata.Builder()
+            .setTitle("Türkçe harici ses")
+            .build()
+        val audioSource = createMediaSource(
+            context = context,
+            url = audioUrl,
+            headers = audioHeaders,
+            filename = audioFilename,
+            audioDelayUsProvider = null,
+            mediaMetadata = externalAudioMetadata
+        )
+
+        val mergedSource = MergingMediaSource(
+            true,
+            videoSource,
+            audioSource
+        )
+        return wrapAudioDelay(
+            mediaSource = mergedSource,
+            audioDelayUsProvider = audioDelayUsProvider
+        )
     }
 
     fun shutdown() {
