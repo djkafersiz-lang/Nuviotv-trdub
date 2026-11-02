@@ -184,6 +184,23 @@ object ShareSesAudioSearch {
         }
     }
 
+    suspend fun findAudioFiles(threadUrl: String): List<ShareSesAudioFile> = withContext(Dispatchers.IO) {
+        val uri = runCatching { threadUrl.toHttpUrl() }.getOrNull() ?: return@withContext emptyList()
+        val source = sources.firstOrNull { it.host == uri.host } ?: return@withContext emptyList()
+        val document = Jsoup.parse(fetchHtml(threadUrl), threadUrl)
+        document.select("a[href]").mapNotNull { anchor ->
+            val href = anchor.absUrl("href")
+            val link = runCatching { href.toHttpUrl() }.getOrNull() ?: return@mapNotNull null
+            if (link.host != source.host) return@mapNotNull null
+            val path = link.encodedPath.lowercase()
+            if (!(path.endsWith(".mka") || path.endsWith(".m4a") || path.endsWith(".aac") ||
+                    path.endsWith(".ac3") || path.endsWith(".eac3") || path.endsWith(".mp3") ||
+                    path.endsWith(".ogg") || path.endsWith(".opus") || path.endsWith(".flac") ||
+                    path.endsWith(".wav"))) return@mapNotNull null
+            ShareSesAudioFile(anchor.text().ifBlank { path.substringAfterLast('/') }.take(160), link.toString(), source.name)
+        }.distinctBy { it.url }.take(12)
+    }
+
     private fun titleMatchScore(query: String, candidate: String): Int {
         val queryWords = query.lowercase()
             .split(Regex("[^\\p{L}\\p{N}]+"))
