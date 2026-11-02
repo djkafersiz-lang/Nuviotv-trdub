@@ -2084,7 +2084,8 @@ fun PlayerScreen(
             visible = showShareSesAudioSearch,
             mediaTitle = uiState.title.ifBlank { uiState.contentName.orEmpty() },
             imdbId = viewModel.getCurrentImdbId(),
-            onDismiss = { showShareSesAudioSearch = false }
+            onDismiss = { showShareSesAudioSearch = false },
+            onAttachAudio = { url, label -> viewModel.attachExternalTurkishAudio(url, label) }
         )
 
         SubtitleSelectionOverlay(
