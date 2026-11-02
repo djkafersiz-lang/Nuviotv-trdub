@@ -193,11 +193,13 @@ object ShareSesAudioSearch {
             val link = runCatching { href.toHttpUrl() }.getOrNull() ?: return@mapNotNull null
             if (link.host != source.host) return@mapNotNull null
             val path = link.encodedPath.lowercase()
-            if (!(path.endsWith(".mka") || path.endsWith(".m4a") || path.endsWith(".aac") ||
-                    path.endsWith(".ac3") || path.endsWith(".eac3") || path.endsWith(".mp3") ||
-                    path.endsWith(".ogg") || path.endsWith(".opus") || path.endsWith(".flac") ||
-                    path.endsWith(".wav"))) return@mapNotNull null
-            ShareSesAudioFile(anchor.text().ifBlank { path.substringAfterLast('/') }.take(160), link.toString(), source.name)
+            val visibleName = anchor.text().ifBlank { anchor.attr("title") }
+            val audioNamePattern = Regex("\\.(mka|m4a|aac|ac3|eac3|mp3|ogg|opus|flac|wav)(?:$|[?\\s])", RegexOption.IGNORE_CASE)
+            val isAudioLink = audioNamePattern.containsMatchIn(path) ||
+                audioNamePattern.containsMatchIn(visibleName) ||
+                (path.contains("/attachments/") && audioNamePattern.containsMatchIn(anchor.attr("title")))
+            if (!isAudioLink) return@mapNotNull null
+            ShareSesAudioFile(visibleName.ifBlank { path.substringAfterLast('/') }.take(160), link.toString(), source.name)
         }.distinctBy { it.url }.take(12)
     }
 
