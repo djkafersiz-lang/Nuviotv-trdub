@@ -213,6 +213,7 @@ fun PlayerScreen(
     onOpenPartyMedia: (PartyMedia) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showShareSesAudioSearch by remember { mutableStateOf(false) }
     val playerBadges = rememberPlayerBadges(viewModel, uiState)
     val partyState by viewModel.party.state.collectAsState()
     val partyPlayback by viewModel.party.playback.collectAsState()
@@ -2061,6 +2062,7 @@ fun PlayerScreen(
             nightMode = uiState.nightMode,
             isNightModeAvailable = uiState.isNightModeAvailable,
             onTrackSelected = { viewModel.onEvent(PlayerEvent.OnSelectAudioTrack(it)) },
+            onFindTurkishAudio = { showShareSesAudioSearch = true },
             onAudioDelayChange = { viewModel.onEvent(PlayerEvent.OnSetAudioDelayMs(it)) },
             onAmplificationChange = { viewModel.onEvent(PlayerEvent.OnSetAudioAmplificationDb(it)) },
             onPersistAmplificationChange = {
@@ -2075,6 +2077,13 @@ fun PlayerScreen(
                 .fillMaxSize()
                 .zIndex(2.6f)
                 .then(playerControlsDim)
+        )
+
+
+        ShareSesAudioSearchDialog(
+            visible = showShareSesAudioSearch,
+            mediaTitle = uiState.title.ifBlank { uiState.contentName.orEmpty() },
+            onDismiss = { showShareSesAudioSearch = false }
         )
 
         SubtitleSelectionOverlay(
