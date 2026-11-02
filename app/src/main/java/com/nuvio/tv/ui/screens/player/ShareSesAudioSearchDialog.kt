@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -30,14 +31,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.nuvio.tv.core.audio.ShareSesAudioMatch
+import com.nuvio.tv.core.audio.ShareSesAudioFile
 import com.nuvio.tv.core.audio.ShareSesAudioSearch
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun ShareSesAudioSearchDialog(
     visible: Boolean,
     mediaTitle: String,
     imdbId: String?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onAttachAudio: (String, String) -> Unit
 ) {
     if (!visible) return
 
@@ -45,6 +49,11 @@ internal fun ShareSesAudioSearchDialog(
     var matches by remember(mediaTitle, imdbId) { mutableStateOf<List<ShareSesAudioMatch>>(emptyList()) }
     var loading by remember(mediaTitle, imdbId) { mutableStateOf(true) }
     var error by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
+    var audioFiles by remember(mediaTitle, imdbId) { mutableStateOf<List<ShareSesAudioFile>>(emptyList()) }
+    var selectedThread by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
+    var loadingFiles by remember(mediaTitle, imdbId) { mutableStateOf(false) }
+    var fileError by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
     val firstResultFocus = remember { FocusRequester() }
 
     LaunchedEffect(mediaTitle, imdbId) {
@@ -100,8 +109,20 @@ internal fun ShareSesAudioSearchDialog(
                                     .fillMaxWidth()
                                     .background(Color(0xFF252B36), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                                     .clickable {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(match.threadUrl))
-                                        context.startActivity(intent)
+                                        selectedThread = match.threadUrl
+                                        audioFiles = emptyList()
+                                        fileError = null
+                                        loadingFiles = true
+                                        coroutineScope.launch {
+                                            try {
+                                                audioFiles = ShareSesAudioSearch.findAudioFiles(match.threadUrl)
+                                                if (audioFiles.isEmpty()) fileError = "Bu konuda doğrudan erişilebilir ses dosyası bulunamadı."
+                                            } catch (exception: Exception) {
+                                                fileError = exception.message ?: "Ses dosyaları okunamadı."
+                                            } finally {
+                                                loadingFiles = false
+                                            }
+                                        }
                                     }
                                     .focusable()
                                     .padding(14.dp)
@@ -117,6 +138,31 @@ internal fun ShareSesAudioSearchDialog(
                         }
                     }
                 }
+            }
+
+            if (selectedThread != null) {
+                Text("Konu içindeki Türkçe ses dosyaları", color = Color(0xFF9ED0FF), style = MaterialTheme.typography.titleMedium)
+                when {
+                    loadingFiles -> Text("Ses dosyaları kontrol ediliyor…", color = Color.White)
+                    audioFiles.isNotEmpty() -> audioFiles.forEach { file ->
+                        Text(
+                            text = "▶  ${file.title}",
+                            color = Color.White,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                onAttachAudio(file.url, file.title)
+                                onDismiss()
+                            }.padding(10.dp)
+                        )
+                    }
+                    fileError != null -> Text(fileError!!, color = Color(0xFFFFCC80))
+                }
+                Text(
+                    text = "Konuyu tarayıcıda aç",
+                    color = Color(0xFF79B8FF),
+                    modifier = Modifier.clickable {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(selectedThread)))
+                    }.padding(8.dp)
+                )
             }
 
             Text(
