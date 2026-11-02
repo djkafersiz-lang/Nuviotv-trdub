@@ -230,6 +230,8 @@ class PlayerRuntimeController(
     internal var currentVideoHeight: Int? = null
     internal var currentVideoBitrate: Int? = null
     internal var currentStreamUrl: String
+    internal var currentExternalAudioUrl: String? = null
+    internal var currentExternalAudioLabel: String? = null
     internal var reportedServerUrl: String? = null
     internal var serverAudioChosenByUser = false
     internal var currentStreamResponseHeaders: Map<String, String> = emptyMap()
