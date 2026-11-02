@@ -8,9 +8,15 @@ import kotlinx.coroutines.flow.update
  * Builds the active video source and, when selected, merges a public external audio stream.
  * Audio requests intentionally use no video-site authorization headers.
  */
+@Suppress("UNUSED_PARAMETER")
 internal fun PlayerRuntimeController.createCurrentMediaSource(
     subtitleConfigurations: List<androidx.media3.common.MediaItem.SubtitleConfiguration> = emptyList(),
-    subtitleRoutes: Map<String, SubtitleRoute> = emptyMap()
+    subtitleRoutes: Map<String, SubtitleRoute> = emptyMap(),
+    filename: String? = null,
+    responseHeaders: Map<String, String> = emptyMap(),
+    mimeTypeOverride: String? = null,
+    audioDelayUsProvider: (() -> Long)? = null,
+    cacheKey: String? = null
 ): MediaSource {
     val externalUrl = currentExternalAudioUrl
     return if (externalUrl.isNullOrBlank()) {
