@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
+import androidx.tv.material3.Button
 import androidx.tv.material3.Card
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
@@ -82,6 +83,7 @@ internal fun AudioSelectionOverlay(
     isNightModeAvailable: Boolean,
     persistAmplification: Boolean,
     onTrackSelected: (Int) -> Unit,
+    onFindTurkishAudio: () -> Unit,
     onAudioDelayChange: (Int) -> Unit,
     onAmplificationChange: (Int) -> Unit,
     onCenterMixLevelChange: (Int) -> Unit,
@@ -213,6 +215,12 @@ internal fun AudioSelectionOverlay(
                     )
                 }
                 Column(modifier = Modifier.width(268.dp)) {
+                    Button(
+                        onClick = onFindTurkishAudio,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                    ) {
+                        Text("Türkçe ses ara")
+                    }
                     AudioControlsContent(
                         audioDelayMs = audioDelayMs,
                         audioAmplificationDb = audioAmplificationDb,
