@@ -965,6 +965,8 @@ internal fun PlayerRuntimeController.switchToSourceStream(
         url = url,
         headers = newHeaders
     )
+    currentExternalAudioUrl = null
+    currentExternalAudioLabel = null
     val playbackUrl = currentStreamUrl
     val playbackHeaders = currentHeaders
     persistSelectedStreamForReuse(stream = stream, url = playbackUrl, headers = playbackHeaders)
@@ -1019,16 +1021,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
                     mimeType = currentStreamMimeType
                 )
                 player.setMediaSource(
-                    mediaSourceFactory.createMediaSource(
-                        context = context,
-                        url = playbackUrl,
-                        headers = playbackHeaders,
-                        filename = currentFilename,
-                        responseHeaders = currentStreamResponseHeaders,
-                        mimeTypeOverride = currentStreamMimeType,
-                        audioDelayUsProvider = audioDelayUs::get,
-                        cacheKey = currentStreamCacheKey
-                    )
+                    createCurrentMediaSource()
                 )
                 player.playWhenReady = true
                 player.prepare()

@@ -230,6 +230,8 @@ class PlayerRuntimeController(
     internal var currentVideoHeight: Int? = null
     internal var currentVideoBitrate: Int? = null
     internal var currentStreamUrl: String
+    internal var currentExternalAudioUrl: String? = null
+    internal var currentExternalAudioLabel: String? = null
     internal var reportedServerUrl: String? = null
     internal var serverAudioChosenByUser = false
     internal var currentStreamResponseHeaders: Map<String, String> = emptyMap()
@@ -252,6 +254,19 @@ class PlayerRuntimeController(
         currentHeaders = initialPlaybackRequest.headers
         streamSubtitles = StreamSidecarSubtitles.forUrl(initialStreamUrl)
             .ifEmpty { StreamSidecarSubtitles.forUrl(currentStreamUrl) }
+    }
+
+    fun getCurrentImdbId(): String? {
+        val candidateIds = listOfNotNull(contentId, videoId)
+        candidateIds.firstOrNull { it.substringBefore(':').matches(Regex("^tt\\d{7,}$")) }
+            ?.let { return it.substringBefore(':') }
+
+        return candidateIds.firstNotNullOfOrNull { id ->
+            contentType?.let { type ->
+                metaRepository.getCachedMeta(type, id)?.imdbId
+                    ?.takeIf { it.matches(Regex("^tt\\d{7,}$")) }
+            }
+        }
     }
 
     fun getCurrentStreamUrl(): String = currentStreamUrl

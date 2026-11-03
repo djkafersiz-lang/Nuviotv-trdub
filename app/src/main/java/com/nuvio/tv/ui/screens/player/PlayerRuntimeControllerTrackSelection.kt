@@ -606,10 +606,8 @@ internal fun PlayerRuntimeController.attachAddonSubtitleViaMediaReload(subtitle:
     val playWhenReady = player.playWhenReady
 
     player.setMediaSource(
-        mediaSourceFactory.createMediaSource(
-            context = context,
-            url = currentStreamUrl,
-            headers = currentHeaders,
+        createCurrentMediaSource(
+            
             subtitleConfigurations = subtitleConfigurations,
             subtitleRoutes = subtitleRoutes(_uiState.value.addonSubtitles + subtitle),
             filename = currentFilename,

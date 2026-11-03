@@ -6,6 +6,7 @@
 package com.nuvio.tv.ui.screens.player
 
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import android.graphics.RectF
 import com.nuvio.tv.ui.screens.detail.formatPlaybackTime
@@ -34,6 +35,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -213,6 +215,7 @@ fun PlayerScreen(
     onOpenPartyMedia: (PartyMedia) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showShareSesAudioSearch by remember { mutableStateOf(false) }
     val playerBadges = rememberPlayerBadges(viewModel, uiState)
     val partyState by viewModel.party.state.collectAsState()
     val partyPlayback by viewModel.party.playback.collectAsState()
@@ -663,6 +666,17 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .then(if (transparentLetterbox) Modifier else Modifier.background(Color.Black))
+            // Touchscreen support: a tap on the video surface reveals/hides playback controls.
+            // Child buttons keep their own click handlers; this gesture is for the player surface.
+            .pointerInput(uiState.showControls, uiState.error) {
+                detectTapGestures(
+                    onTap = {
+                        if (uiState.error == null) {
+                            viewModel.onEvent(PlayerEvent.OnToggleControls)
+                        }
+                    }
+                )
+            }
             .focusRequester(containerFocusRequester)
             .focusable(enabled = uiState.error == null)
             .onPreviewKeyEvent { keyEvent ->
@@ -2061,6 +2075,7 @@ fun PlayerScreen(
             nightMode = uiState.nightMode,
             isNightModeAvailable = uiState.isNightModeAvailable,
             onTrackSelected = { viewModel.onEvent(PlayerEvent.OnSelectAudioTrack(it)) },
+            onFindTurkishAudio = { showShareSesAudioSearch = true },
             onAudioDelayChange = { viewModel.onEvent(PlayerEvent.OnSetAudioDelayMs(it)) },
             onAmplificationChange = { viewModel.onEvent(PlayerEvent.OnSetAudioAmplificationDb(it)) },
             onPersistAmplificationChange = {
@@ -2075,6 +2090,17 @@ fun PlayerScreen(
                 .fillMaxSize()
                 .zIndex(2.6f)
                 .then(playerControlsDim)
+        )
+
+
+        ShareSesAudioSearchDialog(
+            visible = showShareSesAudioSearch,
+            mediaTitle = uiState.title.ifBlank { uiState.contentName.orEmpty() },
+            imdbId = viewModel.getCurrentImdbId(),
+            onDismiss = { showShareSesAudioSearch = false },
+            onAttachAudio = { url, label -> viewModel.attachExternalTurkishAudio(url, label) },
+            onSearchAddonReleases = { title -> viewModel.searchInstalledAddonDubbedReleases(title) },
+            onExtractAndAttach = { candidate -> viewModel.extractAndAttachTurkishAudio(candidate) }
         )
 
         SubtitleSelectionOverlay(
