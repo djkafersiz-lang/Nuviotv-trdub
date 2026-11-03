@@ -2098,7 +2098,8 @@ fun PlayerScreen(
             mediaTitle = uiState.title.ifBlank { uiState.contentName.orEmpty() },
             imdbId = viewModel.getCurrentImdbId(),
             onDismiss = { showShareSesAudioSearch = false },
-            onAttachAudio = { url, label -> viewModel.attachExternalTurkishAudio(url, label) }
+            onAttachAudio = { url, label -> viewModel.attachExternalTurkishAudio(url, label) },
+            onSearchAddonReleases = { title -> viewModel.searchInstalledAddonDubbedReleases(title) }
         )
 
         SubtitleSelectionOverlay(
