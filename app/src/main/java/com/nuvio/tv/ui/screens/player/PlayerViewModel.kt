@@ -254,7 +254,7 @@ class PlayerViewModel @Inject constructor(
                 .extract(candidate.mediaUrl)
             withContext(kotlinx.coroutines.Dispatchers.Main.immediate) {
                 controller.attachExternalTurkishAudio(
-                    extracted.toURI().toString(),
+                    android.net.Uri.fromFile(extracted).toString(),
                     "Türkçe ses · ${candidate.sourceName}"
                 )
             }
