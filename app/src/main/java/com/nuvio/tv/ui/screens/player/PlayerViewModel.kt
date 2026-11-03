@@ -219,6 +219,20 @@ class PlayerViewModel @Inject constructor(
     val exoPlayer: ExoPlayer?
         get() = controller.exoPlayer
 
+    suspend fun searchInstalledAddonDubbedReleases(title: String): List<com.nuvio.tv.core.audio.DubbedReleaseMatch> {
+        val state = uiState.value
+        val imdbId = getCurrentImdbId()?.substringBefore(':') ?: return emptyList()
+        val identity = com.nuvio.tv.core.audio.PlayingTitleIdentity(
+            title = title.ifBlank { state.title },
+            year = state.releaseYear?.toIntOrNull(),
+            imdbId = imdbId,
+            season = state.currentSeason,
+            episode = state.currentEpisode
+        )
+        val provider = com.nuvio.tv.core.audio.NuvioAddonDubbedReleaseProvider(streamRepository)
+        return com.nuvio.tv.core.audio.DubbedReleaseDiscovery(listOf(provider)).find(identity)
+    }
+
     fun getCurrentStreamUrl(): String = controller.getCurrentStreamUrl()
     fun getCurrentImdbId(): String? = controller.getCurrentImdbId()
     fun attachExternalTurkishAudio(url: String, label: String) = controller.attachExternalTurkishAudio(url, label)
