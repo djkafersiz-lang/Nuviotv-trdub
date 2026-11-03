@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -236,6 +237,32 @@ class PlayerViewModel @Inject constructor(
     fun getCurrentStreamUrl(): String = controller.getCurrentStreamUrl()
     fun getCurrentImdbId(): String? = controller.getCurrentImdbId()
     fun attachExternalTurkishAudio(url: String, label: String) = controller.attachExternalTurkishAudio(url, label)
+
+    /**
+     * Extract a positively identified Turkish audio track from an alternate public
+     * release, then attach the local audio-only file to the currently playing video.
+     * Returns a user-facing error; null means the attachment was handed to the player.
+     */
+    suspend fun extractAndAttachTurkishAudio(
+        candidate: com.nuvio.tv.core.audio.DubbedReleaseCandidate
+    ): String? {
+        if (!candidate.isDirectMedia || candidate.isDrmProtected) {
+            return "Bu kaynak doğrudan ve korumasız medya bağlantısı değil."
+        }
+        return try {
+            val extracted = com.nuvio.tv.core.audio.TurkishAudioTrackExtractor(context)
+                .extract(candidate.mediaUrl)
+            withContext(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                controller.attachExternalTurkishAudio(
+                    extracted.toURI().toString(),
+                    "Türkçe ses · ${candidate.sourceName}"
+                )
+            }
+            null
+        } catch (error: Exception) {
+            error.message ?: "Türkçe ses çıkarılırken hata oluştu."
+        }
+    }
 
     fun getCurrentHeaders(): Map<String, String> = controller.getCurrentHeaders()
 
