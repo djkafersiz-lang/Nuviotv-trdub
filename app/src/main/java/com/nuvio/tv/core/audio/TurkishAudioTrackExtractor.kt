@@ -1,6 +1,7 @@
 package com.nuvio.tv.core.audio
 
 import android.media.MediaExtractor
+import android.media.MediaCodec
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.content.Context
@@ -60,7 +61,7 @@ class TurkishAudioTrackExtractor(private val context: Context) {
                 format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE).coerceIn(256 * 1024, 8 * 1024 * 1024)
             } else 2 * 1024 * 1024
             val buffer = ByteBuffer.allocateDirect(maxBuffer)
-            val info = MediaMuxer.BufferInfo()
+            val info = MediaCodec.BufferInfo()
             var samples = 0
             while (true) {
                 buffer.clear()
@@ -78,7 +79,7 @@ class TurkishAudioTrackExtractor(private val context: Context) {
             require(samples > 0) { "Türkçe ses kanalından örnek okunamadı." }
             muxer.stop()
             muxerStarted = false
-            output
+            output ?: throw IllegalStateException("Çıkarılan ses dosyası oluşturulamadı.")
         } catch (error: Exception) {
             output?.delete()
             throw error
