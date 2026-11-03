@@ -2099,7 +2099,8 @@ fun PlayerScreen(
             imdbId = viewModel.getCurrentImdbId(),
             onDismiss = { showShareSesAudioSearch = false },
             onAttachAudio = { url, label -> viewModel.attachExternalTurkishAudio(url, label) },
-            onSearchAddonReleases = { title -> viewModel.searchInstalledAddonDubbedReleases(title) }
+            onSearchAddonReleases = { title -> viewModel.searchInstalledAddonDubbedReleases(title) },
+            onExtractAndAttach = { candidate -> viewModel.extractAndAttachTurkishAudio(candidate) }
         )
 
         SubtitleSelectionOverlay(
