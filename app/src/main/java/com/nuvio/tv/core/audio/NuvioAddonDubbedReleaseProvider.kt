@@ -47,8 +47,7 @@ class NuvioAddonDubbedReleaseProvider(
         fallbackSource: String
     ): DubbedReleaseCandidate? {
         val mediaUrl = getStreamUrl()?.trim()?.takeIf {
-            (it.startsWith("https://", true) || it.startsWith("http://", true)) &&
-                !it.contains("manifest", true).not().let { false }
+            (it.startsWith("https://", true) || it.startsWith("http://", true))
         } ?: return null
 
         val parsed = clientResolve?.stream?.raw?.parsed
