@@ -34,6 +34,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -664,6 +665,17 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .then(if (transparentLetterbox) Modifier else Modifier.background(Color.Black))
+            // Touchscreen support: a tap on the video surface reveals/hides playback controls.
+            // Child buttons keep their own click handlers; this gesture is for the player surface.
+            .pointerInput(uiState.showControls, uiState.error) {
+                detectTapGestures(
+                    onTap = {
+                        if (uiState.error == null) {
+                            viewModel.onEvent(PlayerEvent.OnToggleControls)
+                        }
+                    }
+                )
+            }
             .focusRequester(containerFocusRequester)
             .focusable(enabled = uiState.error == null)
             .onPreviewKeyEvent { keyEvent ->
