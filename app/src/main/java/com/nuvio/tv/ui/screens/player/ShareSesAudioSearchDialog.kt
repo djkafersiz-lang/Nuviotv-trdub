@@ -42,7 +42,8 @@ internal fun ShareSesAudioSearchDialog(
     imdbId: String?,
     onDismiss: () -> Unit,
     onAttachAudio: (String, String) -> Unit,
-    onSearchAddonReleases: suspend (String) -> List<com.nuvio.tv.core.audio.DubbedReleaseMatch>
+    onSearchAddonReleases: suspend (String) -> List<com.nuvio.tv.core.audio.DubbedReleaseMatch>,
+    onExtractAndAttach: suspend (com.nuvio.tv.core.audio.DubbedReleaseCandidate) -> String?
 ) {
     if (!visible) return
 
@@ -56,6 +57,8 @@ internal fun ShareSesAudioSearchDialog(
     var selectedThread by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
     var loadingFiles by remember(mediaTitle, imdbId) { mutableStateOf(false) }
     var fileError by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
+    var extractingUrl by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
+    var extractionError by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val firstResultFocus = remember { FocusRequester() }
 
@@ -108,7 +111,29 @@ internal fun ShareSesAudioSearchDialog(
                         Text(match.candidate.sourceName, color = Color(0xFF79B8FF), style = MaterialTheme.typography.labelSmall)
                         Text(match.candidate.title, color = Color.White, style = MaterialTheme.typography.titleSmall)
                         Text("Eşleşme: ${match.confidence}% · ${match.reasons.joinToString(" · ")}", color = Color(0xFFB8C4D8), style = MaterialTheme.typography.bodySmall)
-                        Text("Sürüm bulundu; ses kanalını çıkarıp ekleme aşaması henüz etkin değil.", color = Color(0xFFFFCC80), style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Türkçe ses kanalını çıkar ve mevcut görüntüye ekle",
+                            color = Color(0xFF9ED0FF),
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.clickable(enabled = extractingUrl == null) {
+                                extractingUrl = match.candidate.mediaUrl
+                                extractionError = null
+                                coroutineScope.launch {
+                                    try {
+                                        extractionError = onExtractAndAttach(match.candidate)
+                                        if (extractionError == null) onDismiss()
+                                    } catch (exception: Exception) {
+                                        extractionError = exception.message ?: "Türkçe ses çıkarılamadı."
+                                    } finally {
+                                        extractingUrl = null
+                                    }
+                                }
+                            }.padding(top = 8.dp)
+                        )
+                        if (extractingUrl == match.candidate.mediaUrl) {
+                            Text("Türkçe ses çıkarılıyor…", color = Color(0xFFFFCC80))
+                        }
+                        if (extractionError != null) Text(extractionError!!, color = Color(0xFFFFCC80))
                     }
                 }
             } else if (!loading && addonSearchError != null) {
