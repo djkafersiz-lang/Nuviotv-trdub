@@ -6,6 +6,7 @@
 package com.nuvio.tv.ui.screens.player
 
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import android.graphics.RectF
 import com.nuvio.tv.ui.screens.detail.formatPlaybackTime
