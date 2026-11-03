@@ -41,11 +41,14 @@ internal fun ShareSesAudioSearchDialog(
     mediaTitle: String,
     imdbId: String?,
     onDismiss: () -> Unit,
-    onAttachAudio: (String, String) -> Unit
+    onAttachAudio: (String, String) -> Unit,
+    onSearchAddonReleases: suspend (String) -> List<com.nuvio.tv.core.audio.DubbedReleaseMatch>
 ) {
     if (!visible) return
 
     val context = LocalContext.current
+    var addonMatches by remember(mediaTitle, imdbId) { mutableStateOf<List<com.nuvio.tv.core.audio.DubbedReleaseMatch>>(emptyList()) }
+    var addonSearchError by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
     var matches by remember(mediaTitle, imdbId) { mutableStateOf<List<ShareSesAudioMatch>>(emptyList()) }
     var loading by remember(mediaTitle, imdbId) { mutableStateOf(true) }
     var error by remember(mediaTitle, imdbId) { mutableStateOf<String?>(null) }
@@ -61,10 +64,12 @@ internal fun ShareSesAudioSearchDialog(
         error = null
         matches = emptyList()
         try {
+            addonMatches = onSearchAddonReleases(mediaTitle)
             matches = ShareSesAudioSearch.search(mediaTitle, imdbId)
             if (matches.isEmpty()) error = "Eşleşen herkese açık konu bulunamadı."
         } catch (exception: Exception) {
-            error = exception.message ?: "ShareSes araması yapılamadı."
+            addonSearchError = exception.message
+            error = exception.message ?: "Ses kaynakları aranamadı."
         } finally {
             loading = false
         }
@@ -90,6 +95,24 @@ internal fun ShareSesAudioSearchDialog(
             )
             imdbId?.let {
                 Text("IMDb: $it", color = Color(0xFF79B8FF), style = MaterialTheme.typography.labelMedium)
+            }
+
+            if (addonMatches.isNotEmpty()) {
+                Text("Nuvio eklentilerinde bulunan alternatif sürümler", color = Color(0xFF9ED0FF), style = MaterialTheme.typography.titleMedium)
+                addonMatches.forEach { match ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .background(Color(0xFF252B36), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(match.candidate.sourceName, color = Color(0xFF79B8FF), style = MaterialTheme.typography.labelSmall)
+                        Text(match.candidate.title, color = Color.White, style = MaterialTheme.typography.titleSmall)
+                        Text("Eşleşme: ${match.confidence}% · ${match.reasons.joinToString(" · ")}", color = Color(0xFFB8C4D8), style = MaterialTheme.typography.bodySmall)
+                        Text("Sürüm bulundu; ses kanalını çıkarıp ekleme aşaması henüz etkin değil.", color = Color(0xFFFFCC80), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            } else if (!loading && addonSearchError != null) {
+                Text("Nuvio eklenti araması: $addonSearchError", color = Color(0xFFFFCC80))
             }
 
             when {
